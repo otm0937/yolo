@@ -1,14 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-ipad pointcloud streaming with open3d
-by kentaroy47
-"""
-
-import copy
 import numpy as np
-import open3d as o3d
-import cv2
 from record3d import Record3DStream
+import cv2
 from threading import Event
 
 
@@ -16,8 +8,8 @@ class DemoApp:
     def __init__(self):
         self.event = Event()
         self.session = None
-        self.vis = o3d.visualization.Visualizer()
-        self.vis.create_window()
+        self.DEVICE_TYPE__TRUEDEPTH = 0
+        self.DEVICE_TYPE__LIDAR = 1
 
     def on_new_frame(self):
         """
@@ -46,55 +38,40 @@ class DemoApp:
         self.session.connect(dev)  # Initiate connection and start capturing
 
     def get_intrinsic_mat_from_coeffs(self, coeffs):
-        return np.array([[coeffs.fx, 0, coeffs.tx],
-                         [0, coeffs.fy, coeffs.ty],
-                         [0, 0, 1]])
-
-    def create_point_cloud(self):
-        depth = self.session.get_depth_frame()
-        rgb = cv2.resize(self.session.get_rgb_frame(), np.flip(np.shape(depth)))
-        rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(o3d.geometry.Image(rgb),
-                                                                  o3d.geometry.Image(depth),
-                                                                  convert_rgb_to_intensity=False)
-        return o3d.geometry.PointCloud.create_from_rgbd_image(rgbd, self.intrinsic)
+        return np.array([[coeffs.fx,         0, coeffs.tx],
+                         [        0, coeffs.fy, coeffs.ty],
+                         [        0,         0,         1]])
 
     def start_processing_stream(self):
-        self.event.wait()  # Wait for new frame to arrive
-
-        # get intrinsic parameters
-        intrinsic_mat = self.get_intrinsic_mat_from_coeffs(self.session.get_intrinsic_mat())
-
-        # setup point clouds
-        # lidar depth map = 256x192
-        # intrinsics work well divided by 4 than the given value from record3d
-        self.intrinsic = o3d.camera.PinholeCameraIntrinsic(*np.shape(self.session.get_depth_frame()),
-                                                           intrinsic_mat[0, 0] / 4,
-                                                           intrinsic_mat[1, 1] / 4,
-                                                           intrinsic_mat[0, 2] / 4,
-                                                           intrinsic_mat[1, 2] / 4)
-        self.pcd = self.create_point_cloud()
-        # add geometry
-        self.vis.add_geometry(self.pcd)
-
-        # Loop for point clouds
         while True:
             self.event.wait()  # Wait for new frame to arrive
 
-            # update pointclouds
-            pcd = self.create_point_cloud()
-            self.pcd.points = pcd.points
-            self.pcd.colors = pcd.colors
+            # Copy the newly arrived RGBD frame
+            depth = self.session.get_depth_frame()
+            rgb = self.session.get_rgb_frame()
+            intrinsic_mat = self.get_intrinsic_mat_from_coeffs(self.session.get_intrinsic_mat())
+            camera_pose = self.session.get_camera_pose()  # Quaternion + world position (accessible via camera_pose.[qx|qy|qz|qw|tx|ty|tz])
 
-            # update geometry
-            self.vis.update_geometry(self.pcd)
-            self.vis.poll_events()
-            self.vis.update_renderer()
+            print(intrinsic_mat)
 
-            # close connection
+            # You can now e.g. create point cloud by projecting the depth map using the intrinsic matrix.
+
+            # Postprocess it
+            if self.session.get_device_type() == self.DEVICE_TYPE__TRUEDEPTH:
+                depth = cv2.flip(depth, 1)
+                rgb = cv2.flip(rgb, 1)
+
+            rgb = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+
+            # Show the RGBD Stream
+            cv2.imshow('RGB', rgb)
+            cv2.imshow('Depth', depth)
+            cv2.waitKey(1)
+
             self.event.clear()
 
 
 if __name__ == '__main__':
-    getter = DemoApp()
-    getter.connect_to_device(dev_idx=0)
-    getter.start_processing_stream()
+    app = DemoApp()
+    app.connect_to_device(dev_idx=0)
+    app.start_processing_stream()
