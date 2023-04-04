@@ -1,0 +1,13 @@
+nc: 2
+names: ['person', 'trafficcone']
+
+roboflow:
+  workspace: project
+  project: traffic-cone-osnih
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/project/traffic-cone-osnih/dataset/1
+
+test: /Users/tk_mini/autory/study/yolo/datasets/traffic-cone/test/images
+train: /Users/tk_mini/autory/study/yolo/datasets/traffic-cone/train/images
+val: /Users/tk_mini/autory/study/yolo/datasets/traffic-cone/valid/images

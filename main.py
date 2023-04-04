@@ -6,7 +6,8 @@ from ultralytics import YOLO
 # Load a model
 # model = YOLO('yolov8x.pt')  # load an official detection model
 # model = YOLO('yolov8n-seg.pt')  # load an official segmentation model
-model = YOLO('runs/detect/train3/weights/best.pt')  # load a custom model
+# model = YOLO('runs/detect/train3/weights/best.pt')  # load a custom model
+model = YOLO('runs/detect/train36/weights/best.pt')  # load a custom model
 
 cap = cv2.VideoCapture(1)  # set video device #device number
 if cap.isOpened():  # check device connection
@@ -41,8 +42,6 @@ while True:  # loop
             max_fps = fps
         if fps < min_fps:
             min_fps = fps
-
-        info = "cnt: %d\n fps: %.2f\n avg: %.2f" % (cnt, fps, avg)
 
         cv2.putText(res_plotted, "cnt: %d" % cnt, (5, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (100, 255, 0), 1)
         cv2.putText(res_plotted, "dly: %.4f" % dly, (5, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (100, 255, 0), 1)
